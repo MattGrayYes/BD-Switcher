@@ -31,6 +31,9 @@ namespace BD_Switcher
         {
             try
             {
+                // Add the "Display No Source" option at the top
+                ndiSources.Add(new MdnsItem { Name = "None" });
+
                 IReadOnlyList<IZeroconfHost> results = await ZeroconfResolver.ResolveAsync("_ndi._tcp.local.");
                 foreach (var result in results)
                 {
@@ -83,11 +86,13 @@ namespace BD_Switcher
             listBox.Items.Clear(); // Clear the "Searching for [sources/destinations]" message
             if (items.Count == 0)
             {
-                listBox.Items.Add($"No {listBox.Name} found");
+                listBox.Items.Add($"No results found.");
+                listBox.Enabled = false;
             }
             else
             {
                 listBox.Items.AddRange(items.ToArray());
+                listBox.Enabled = true;
             }
             listBox.EndUpdate();
         }
@@ -102,14 +107,19 @@ namespace BD_Switcher
             // Check if both source and destination are selected
             if (selectedSourceItem != null && selectedDestinationItem != null)
             {
+                // Construct the API URL with the selected destination's IP address and port 8080
+                string apiUrl = $"http://{selectedDestinationItem.IPAddress}:8080/connectTo";
+
                 // Display a confirmation dialog
-                DialogResult result = MessageBox.Show($"Do you want to route '{selectedSourceItem.Name}' to '{selectedDestinationItem.Name}'?", "Confirm Routing", MessageBoxButtons.OKCancel);
+                DialogResult result = MessageBox.Show($"Do you want to route:\n" +
+                                                        $"{selectedSourceItem.Name} ({selectedSourceItem.IPAddress}) \n" +
+                                                        $"to\n" +
+                                                        $"{selectedDestinationItem.Name} ({selectedDestinationItem.IPAddress})?\n\n",
+                                                      "Confirm Routing", MessageBoxButtons.OKCancel);
 
                 // Check the user's choice in the dialog
                 if (result == DialogResult.OK)
                 {
-                    // Construct the API URL with the selected destination's IP address and port 8080
-                    string apiUrl = $"http://{selectedDestinationItem.IPAddress}:8080/connectTo";
                     // Create a JSON payload with the sourceName
                     string jsonPayload = $"{{ \"sourceName\": \"{selectedSourceItem.Name}\" }}";
 
@@ -126,7 +136,6 @@ namespace BD_Switcher
                             // Check the response status
                             if (response.IsSuccessStatusCode)
                             {
-                                MessageBox.Show($"Routing '{selectedSourceItem.Name}' to '{selectedDestinationItem.Name}' using url '{apiUrl}' successful!");
                             }
                             else
                             {
@@ -148,6 +157,32 @@ namespace BD_Switcher
             {
                 MessageBox.Show("Please select both a source and a destination.");
             }
+        }
+
+        private void refreshSourcesButton_Click(object sender, EventArgs e)
+        {
+            // Clear the current list and display "Searching for sources..."
+            sourceListBox.Items.Clear();
+            sourceListBox.Items.Add("Searching for sources...");
+
+            // Clear the ndiSources list to remove old entries
+            ndiSources.Clear();
+
+            // Start the async search for NDI sources
+            SearchForNDISources();
+        }
+
+        private void refreshDestinationsButton_Click(object sender, EventArgs e)
+        {
+            // Clear the current list and display "Searching for destinations..."
+            destinationListBox.Items.Clear();
+            destinationListBox.Items.Add("Searching for destinations...");
+
+            // Clear the birdDogSources list to remove old entries
+            birdDogSources.Clear();
+
+            // Start the async search for BirdDog sources
+            SearchForBirdDogSources();
         }
     }
 
