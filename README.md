@@ -4,6 +4,9 @@ This is a Windows app that allows you to route NDI video sources BirdDog BD-Play
 
 It uses mDNS (Zeroconf/Bonjour) to discover NDI video sources and BirdDog players on your network, and the BirdDog REST API to tell the player to connect to a source.
 
+## Warning
+I have limited knowledge of Windows Forms Apps and C#. I developed this with the help of ChatGPT.
+
 ## How It Works
 It searches for NDI video sources and BirdDog players on your network using mDNS (Zeroconf).
 
