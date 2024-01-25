@@ -6,21 +6,22 @@ using System.Threading.Tasks;
 using Zeroconf;
 using System.Net.Http;
 using System.Text;
+using System.ComponentModel;
 
 namespace BD_Switcher
 {
     public partial class Form1 : Form
     {
-        private readonly List<MdnsItem> ndiSources = new List<MdnsItem>();
-        private readonly List<MdnsItem> birdDogSources = new List<MdnsItem>();
+        private readonly BindingList<MdnsItem> ndiSources = new BindingList<MdnsItem>();
+        private readonly BindingList<MdnsItem> birdDogSources = new BindingList<MdnsItem>();
 
         public Form1()
         {
             InitializeComponent();
 
-            // Set the initial text for the ListBoxes
-            sourceListBox.Items.Add("Searching for sources...");
-            destinationListBox.Items.Add("Searching for destinations...");
+            // Set the initial text for the DataGridViews
+            sourceDataGridView.DataSource = ndiSources;
+            destinationDataGridView.DataSource = birdDogSources;
 
             // Start the async searches for NDI and BirdDog sources
             SearchForNDISources();
@@ -46,7 +47,6 @@ namespace BD_Switcher
 
                     ndiSources.Add(mdnsItem);
                 }
-                RefreshListBox(sourceListBox, ndiSources.Select(item => item.Name).ToList());
             }
             catch (Exception ex)
             {
@@ -71,7 +71,6 @@ namespace BD_Switcher
 
                     birdDogSources.Add(mdnsItem);
                 }
-                RefreshListBox(destinationListBox, birdDogSources.Select(item => item.Name).ToList());
             }
             catch (Exception ex)
             {
@@ -80,29 +79,12 @@ namespace BD_Switcher
             }
         }
 
-        private void RefreshListBox(ListBox listBox, List<string> items)
-        {
-            listBox.BeginUpdate();
-            listBox.Items.Clear(); // Clear the "Searching for [sources/destinations]" message
-            if (items.Count == 0)
-            {
-                listBox.Items.Add($"No results found.");
-                listBox.Enabled = false;
-            }
-            else
-            {
-                listBox.Items.AddRange(items.ToArray());
-                listBox.Enabled = true;
-            }
-            listBox.EndUpdate();
-        }
-
         // Handle the "Route" button click event here
         private async void routeButton_Click(object sender, EventArgs e)
         {
             // Retrieve the selected MDNS items
-            MdnsItem selectedSourceItem = ndiSources.FirstOrDefault(item => item.Name == sourceListBox.SelectedItem as string);
-            MdnsItem selectedDestinationItem = birdDogSources.FirstOrDefault(item => item.Name == destinationListBox.SelectedItem as string);
+            MdnsItem selectedSourceItem = ndiSources.FirstOrDefault(item => item.Name == sourceDataGridView.SelectedCells[0].Value?.ToString());
+            MdnsItem selectedDestinationItem = birdDogSources.FirstOrDefault(item => item.Name == destinationDataGridView.SelectedCells[0].Value?.ToString());
 
             // Check if both source and destination are selected
             if (selectedSourceItem != null && selectedDestinationItem != null)
@@ -158,13 +140,19 @@ namespace BD_Switcher
                 MessageBox.Show("Please select both a source and a destination.");
             }
         }
+        private void FilterTextBox_TextChanged(object sender, EventArgs e)
+        {
+            // Filter the sourceDataGridView based on the entered text
+            string filterText = filterTextBox.Text.ToLower();
+            sourceDataGridView.DataSource = new BindingList<MdnsItem>(ndiSources.Where(item => item.Name.ToLower().Contains(filterText)).ToList());
+
+            // Filter the destinationDataGridView based on the entered text
+            filterText = filterTextBox.Text.ToLower();
+            destinationDataGridView.DataSource = new BindingList<MdnsItem>(birdDogSources.Where(item => item.Name.ToLower().Contains(filterText)).ToList());
+        }
 
         private void refreshSourcesButton_Click(object sender, EventArgs e)
         {
-            // Clear the current list and display "Searching for sources..."
-            sourceListBox.Items.Clear();
-            sourceListBox.Items.Add("Searching for sources...");
-
             // Clear the ndiSources list to remove old entries
             ndiSources.Clear();
 
@@ -174,22 +162,19 @@ namespace BD_Switcher
 
         private void refreshDestinationsButton_Click(object sender, EventArgs e)
         {
-            // Clear the current list and display "Searching for destinations..."
-            destinationListBox.Items.Clear();
-            destinationListBox.Items.Add("Searching for destinations...");
-
             // Clear the birdDogSources list to remove old entries
             birdDogSources.Clear();
 
             // Start the async search for BirdDog sources
             SearchForBirdDogSources();
         }
+
     }
 
     // Custom class to represent MDNS items with IP address and name
     public class MdnsItem
     {
-        public string IPAddress { get; set; }
         public string Name { get; set; }
+        public string IPAddress { get; set; }
     }
 }
